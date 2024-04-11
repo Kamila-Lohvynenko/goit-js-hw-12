@@ -18,7 +18,6 @@ form.addEventListener('submit', searchImages);
 loadMoreButton.addEventListener(`click`, loadMore);
 
 let valueForSearch = ``;
-
 const page = { currentPage: 1 };
 let totalPages = 0;
 
@@ -31,54 +30,62 @@ function searchImages(event) {
   imagesList.innerHTML = '';
 
   if (!searchInput.value.trim()) {
+    loadMoreButton.classList.add(`is-hidden`);
     makeErrorMessage('Your query does not contain any letters!');
     return;
   }
   loadingMessage.classList.remove('is-hidden');
-
-  fetchImages(valueForSearch, page)
-    .then(response => {
-      loadingMessage.classList.add(`is-hidden`);
-      totalPages = Math.ceil(response.totalHits / 15);
-      if (page.currentPage <= totalPages) {
-        loadMoreButton.classList.remove(`is-hidden`);
-      }
-      if (!response.hits) {
-        makeErrorMessage('There is a problem with on the server');
-        throw new Error(`Object "hits" is missing`);
-      }
-      imagesList.insertAdjacentHTML(`beforeend`, renderImages(response.hits));
-      lightbox.refresh();
-    })
-    .catch(error => {
-      loadingMessage.classList.add(`is-hidden`);
-      console.log(error);
-    })
-    .finally(() => form.reset());
+  makeGallery(valueForSearch, page);
 }
 
-function loadMore() {
-  loadMoreButton.classList.remove(`is-hidden`);
-  fetchImages(valueForSearch, page)
-    .then(response => {
-      loadingMessage.classList.add(`is-hidden`);
-      totalPages = Math.ceil(response.totalHits / 15);
-      if (page.currentPage > totalPages) {
-        loadMoreButton.classList.add(`is-hidden`);
-        endMessage.classList.remove(`is-hidden`);
-      }
-      if (!response.hits) {
-        makeErrorMessage('There is a problem with data on the server');
-        throw new Error(`Object "hits" is missing`);
-      }
-      imagesList.insertAdjacentHTML(`beforeend`, renderImages(response.hits));
-      lightbox.refresh();
-      makeScroll();
-    })
-    .catch(error => {
-      loadingMessage.classList.add(`is-hidden`);
-      console.log(error);
-    });
+async function makeGallery(valueForSearch, page) {
+  try {
+    loadingMessage.classList.add(`is-hidden`);
+    const response = await fetchImages(valueForSearch, page);
+    totalPages = Math.ceil(response.totalHits / 15);
+    console.log(totalPages);
+    console.log(page.currentPage);
+    if (page.currentPage <= totalPages) {
+      loadMoreButton.classList.remove(`is-hidden`);
+    }
+    if (!response.hits) {
+      makeErrorMessage('There is a problem with on the server');
+      throw new Error(`Object "hits" is missing`);
+    }
+    if (response.totalHits <= 15) {
+      loadMoreButton.classList.add(`is-hidden`);
+    }
+    imagesList.insertAdjacentHTML(`beforeend`, renderImages(response.hits));
+    lightbox.refresh();
+  } catch (error) {
+    loadingMessage.classList.add(`is-hidden`);
+    console.log(error);
+  } finally {
+    form.reset();
+  }
+}
+
+async function loadMore() {
+  try {
+    loadMoreButton.classList.remove(`is-hidden`);
+    const response = await fetchImages(valueForSearch, page);
+    loadingMessage.classList.add(`is-hidden`);
+    totalPages = Math.ceil(response.totalHits / 15);
+    if (page.currentPage > totalPages) {
+      loadMoreButton.classList.add(`is-hidden`);
+      endMessage.classList.remove(`is-hidden`);
+    }
+    if (!response.hits) {
+      makeErrorMessage('There is a problem with data on the server');
+      throw new Error(`Object "hits" is missing`);
+    }
+    imagesList.insertAdjacentHTML(`beforeend`, renderImages(response.hits));
+    lightbox.refresh();
+    makeScroll();
+  } catch (error) {
+    loadingMessage.classList.add(`is-hidden`);
+    console.log(error);
+  }
 }
 const lightbox = new SimpleLightbox('.container a', {
   captionsData: 'alt',
